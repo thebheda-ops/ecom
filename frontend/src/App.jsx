@@ -1,121 +1,161 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useEffect, useState } from "react";
+import { createProduct, fetchProducts } from "./api.js";
+import ProductCard from "./components/ProductCard.jsx";
 
-function App() {
-  const [count, setCount] = useState(0)
+const initialForm = { name: "", price: "", imageUrl: "", description: "" };
+
+const App = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState(initialForm);
+  const [saving, setSaving] = useState(false);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchProducts();
+      setProducts(data);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+
+    try {
+      const payload = {
+        name: form.name.trim(),
+        price: Number(form.price),
+        imageUrl: form.imageUrl.trim(),
+        description: form.description.trim(),
+      };
+
+      if (!payload.name || Number.isNaN(payload.price)) {
+        throw new Error("Name and price are required.");
+      }
+
+      const created = await createProduct(payload);
+      setProducts((prev) => [created, ...prev]);
+      setForm(initialForm);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className='page'>
+      <header className='hero'>
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+          <p className='eyebrow'>NovaCart</p>
+          <h1>Launch your next storefront in minutes.</h1>
+          <p className='subtitle'>
+            A tiny MERN demo with MongoDB + Express + React + Node. Add products
+            below and watch the catalog update live.
           </p>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+        <div className='stats'>
+          <div>
+            <span className='stat__label'>Products</span>
+            <span className='stat__value'>{products.length}</span>
+          </div>
+          <div>
+            <span className='stat__label'>Status</span>
+            <span className='stat__value'>{loading ? "Loading" : "Ready"}</span>
+          </div>
+        </div>
+      </header>
+
+      <section className='panel'>
+        <h2>Add a product</h2>
+        <form className='form' onSubmit={handleSubmit}>
+          <label>
+            Product name
+            <input
+              name='name'
+              value={form.name}
+              onChange={handleChange}
+              placeholder='Midnight Hoodie'
+              required
+            />
+          </label>
+          <label>
+            Price (USD)
+            <input
+              name='price'
+              value={form.price}
+              onChange={handleChange}
+              placeholder='89'
+              type='number'
+              min='0'
+              step='0.01'
+              required
+            />
+          </label>
+          <label>
+            Image URL
+            <input
+              name='imageUrl'
+              value={form.imageUrl}
+              onChange={handleChange}
+              placeholder='https://'
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              name='description'
+              value={form.description}
+              onChange={handleChange}
+              placeholder='Limited drop with a soft brushed interior.'
+              rows='3'
+            />
+          </label>
+          <button type='submit' disabled={saving}>
+            {saving ? "Saving..." : "Add product"}
+          </button>
+        </form>
+        {error ? <p className='error'>{error}</p> : null}
       </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <section className='catalog'>
+        <div className='catalog__header'>
+          <h2>Featured products</h2>
+          <button className='ghost' onClick={loadProducts} disabled={loading}>
+            Refresh
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
+        {loading ? (
+          <p className='muted'>Loading products...</p>
+        ) : products.length === 0 ? (
+          <p className='muted'>No products yet. Add the first one above.</p>
+        ) : (
+          <div className='grid'>
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
-
-export default App
+export default App;
